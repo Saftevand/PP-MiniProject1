@@ -57,6 +57,18 @@
         #f)
      #t))
 
+(define (convert-to-note-abs-time-with-duration seq-mus-elem)
+  (convert-helper seq-mus-elem '()))           ;TODO test at list-builder virker + Lav en metode som omdanner listen fra list-builder til note-abs-time-with-duration formen + Ændre scale transform til music element
+
+(define (list-builder lst result-lst)
+  (if(null? lst)
+     '()
+     (cond((eqv? 'note (send 'get-type (car lst))) (cons result-lst (cons (car lst) (list-builder (cdr lst)))))
+          ((eqv? 'pause (send 'get-type (car lst))) (cons result-lst (cons (car lst) (list-builder (cdr lst)))))
+          ((eqv? 'SequentialMusicElement (send 'get-type (car lst))) (cons result-lst (cons (list-builder (car lst)) (list-builder (cdr lst)))))
+          ((eqv? 'ParallelMusicElement (send 'get-type (car lst))) (cons result-lst (cons (list-builder (car lst)) (list-builder (cdr lst)))))
+          (else error "Invalid type!"))))
+
 ;Constructor functions
 (define (note pitch duration instrument)
   (if(and (pitch? pitch) (duration? duration) (instrument? instrument))
@@ -67,11 +79,17 @@
        (define (get-pitch) pitch-value)
        (define (get-duration) duration-value)
        (define (get-instrument) instrument-type)
+       (define (scale factor) (note pitch-value (* factor duration-value) instrument-type))
+       (define (transpose amount) (note (+ amount pitch-value) duration-value instrument-type))
+       (define (re-instrument new-instrument) (note pitch-value duration-value new-instrument))
        (define (get-type) 'Note)
        (define (self message)
          (cond ((eqv? message 'get-pitch) get-pitch)
                ((eqv? message 'get-duration) get-duration)
                ((eqv? message 'get-instrument) get-instrument)
+               ((eqv? message 'scale) scale)
+               ((eqv? message 'transpose) transpose)
+               ((eqv? message 're-instrument) re-instrument)
                ((eqv? message 'get-type) get-type)))
        self)
      (error "Invalid note!")))
