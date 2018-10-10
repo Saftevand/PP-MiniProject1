@@ -154,16 +154,29 @@
 (define (calc-duration-par x)
   (calc-duration-par-helper x 0))
 
-(define (calc-duration-par-helper x longest-duration)  ;Dis sit does not works
+(define (calc-duration-par-helper x longest-duration)
   (if(null? x)
      longest-duration
-     (if(and (not (pair? x))(procedure? x))
+     (if(and (procedure? x))
         (if (> (send 'get-duration x) longest-duration)
             (send 'get-duration x)
             longest-duration)
         (if(> (send 'get-duration (car x)) longest-duration)
-         (calc-duration-par-helper (cdr x) (car x))
-         (calc-duration-par-helper (cdr x) (car longest-duration))))))
+           (calc-duration-par-helper (cdr x) (send 'get-duration (car x)))
+           (calc-duration-par-helper (cdr x) longest-duration)))))
+
+(define (set-start-time-par x time)
+  (if(null? x)
+     '()
+     (if(procedure? x)
+        (cond((eqv? 'Note (send 'get-type x))
+             (eqv? 'Pause (send 'get-gype x))
+             (eqv? 'SequentialMusicElement (send 'get-type x))
+             (eqv? 'ParallelMusicElement (send 'get-type x))))
+        (cond((eqv? 'Note (send 'get-type (car x)))
+             (eqv? 'Pause (send 'get-gype (car x)))
+             (eqv? 'SequentialMusicElement (send 'get-type (car x)))
+             (eqv? 'ParallelMusicElement (send 'get-type (car x))))))))
 
 
 ;Constructor functions
