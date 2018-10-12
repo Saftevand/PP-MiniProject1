@@ -187,26 +187,66 @@
             (set-start-time-seq (car x) time)))))
                         
 
-(define (transpose-element x amount) ;Virker ikke helt endnu makkeres
+;Given an music element it will transpose the pitch of itself
+;and any sup music elements it may contain
+(define (transpose-element x amount) 
   (if(null? x)
      '()
      (if(musicElement? x)
         (cond((eqv? 'Note (send 'get-type x)) (send 'transpose x amount))
              ((eqv? 'Pause (send 'get-type x)) x)
-             ((eqv? 'SequentialMusicElement (send 'get-type x)) (send 'transpose x amount)) ;(SequentialMusicElement (car (transpose-element (send 'get-elements x) amount))))
-             ((eqv? 'ParallelMusicElement (send 'get-type x)) (send 'transpose x amount));(ParallelMusicElement(car (transpose-element (send 'get-elements x) amount ))))
+             ((eqv? 'SequentialMusicElement (send 'get-type x)) (send 'transpose x amount))
+             ((eqv? 'ParallelMusicElement (send 'get-type x)) (send 'transpose x amount))
              (else error "Error: Unkown type"))
         (if(musicElement? (car x))
            (cond((eqv? 'Note (send 'get-type (car x))) (cons (send 'transpose (car x) amount) (transpose-element (cdr x) amount)))
              ((eqv? 'Pause (send 'get-type (car x))) (transpose-element (cdr x) amount))
-             ((eqv? 'SequentialMusicElement (send 'get-type (car x))) (append (transpose-element (car x) amount) (transpose-element (cdr x) amount)))
-             ((eqv? 'ParallelMusicElement (send 'get-type (car x))) (append (transpose-element (car x) amount) (transpose-element (cdr x) amount)))
+             ((eqv? 'SequentialMusicElement (send 'get-type (car x))) (cons (transpose-element (car x) amount) (transpose-element (cdr x) amount)))
+             ((eqv? 'ParallelMusicElement (send 'get-type (car x))) (cons (transpose-element (car x) amount) (transpose-element (cdr x) amount)))
              (else error "Error: Unkown type"))
-           (transpose-element (car x) amount)))))
+           (append (transpose-element (car x) amount) (transpose-element (cdr x) amount))))))
+
+;Given an music element it will scale the duration of itself
+;and any sup music elements it may contain
+(define (scale-element x factor) 
+  (if(null? x)
+     '()
+     (if(musicElement? x)
+        (cond((eqv? 'Note (send 'get-type x)) (send 'scale x factor))
+             ((eqv? 'Pause (send 'get-type x)) (send 'scale x factor))
+             ((eqv? 'SequentialMusicElement (send 'get-type x)) (send 'scale x factor))
+             ((eqv? 'ParallelMusicElement (send 'get-type x)) (send 'scale x factor))
+             (else error "Error: Unkown type"))
+        (if(musicElement? (car x))
+           (cond((eqv? 'Note (send 'get-type (car x))) (cons (send 'scale (car x) factor) (scale-element (cdr x) factor)))
+             ((eqv? 'Pause (send 'get-type (car x))) (cons (send 'scale (car x) factor) (scale-element (cdr x) factor)))
+             ((eqv? 'SequentialMusicElement (send 'get-type (car x))) (cons (scale-element (car x) factor) (scale-element (cdr x) factor)))
+             ((eqv? 'ParallelMusicElement (send 'get-type (car x))) (cons (scale-element (car x) factor) (scale-element (cdr x) factor)))
+             (else error "Error: Unkown type"))
+           (append (scale-element (car x) 'scale) (scale-element (cdr x) factor))))))
+
+;Given an music element it will change the instrument of itself
+;and any sup music elements it may contain
+(define (re-instrument-element x instrument) 
+  (if(null? x)
+     '()
+     (if(musicElement? x)
+        (cond((eqv? 'Note (send 'get-type x)) (send 're-instrument x instrument))
+             ((eqv? 'Pause (send 'get-type x)) x)
+             ((eqv? 'SequentialMusicElement (send 'get-type x)) (send 're-instrument x instrument))
+             ((eqv? 'ParallelMusicElement (send 'get-type x)) (send 're-instrument x instrument))
+             (else error "Error: Unkown type"))
+        (if(musicElement? (car x))
+           (cond((eqv? 'Note (send 'get-type (car x))) (cons (send 're-instrument (car x) instrument) (re-instrument-element (cdr x) instrument)))
+             ((eqv? 'Pause (send 'get-type (car x))) (re-instrument-element (cdr x) instrument))
+             ((eqv? 'SequentialMusicElement (send 'get-type (car x))) (cons (re-instrument-element (car x) instrument) (re-instrument-element (cdr x) instrument)))
+             ((eqv? 'ParallelMusicElement (send 'get-type (car x))) (cons (re-instrument-element (car x) instrument) (re-instrument-element (cdr x) instrument)))
+             (else error "Error: Unkown type"))
+           (append (re-instrument-element (car x) instrument) (re-instrument-element (cdr x) instrument))))))
 
 
 ;Given the name of an instrument, it will return the instruments id
-(define (convert-from-instrument x) ; "" -> '
+(define (convert-from-instrument x)
   (cond((eqv? x 'Piano) 1)
        ((eqv? x 'Organ) 2)
        ((eqv? x 'Guitar) 3)
@@ -219,7 +259,8 @@
         
 
 
-;The music elements "created" as ojects
+;The music elements as "ojects"
+;Note
 (define (note pitch duration instrument start)
   (if(and (pitch? pitch) (duration? duration) (instrument? instrument))
      (let ((pitch-value pitch)
@@ -246,7 +287,8 @@
                ((eqv? message 'get-type) get-type)))
        self)
      (error "Invalid note!")))
-    
+
+;Pause
 (define (pause duration start)
   (if(duration? duration)
      (let ((duration-value duration)
@@ -255,40 +297,60 @@
        (define (get-duration) duration-value)
        (define (get-type) 'Pause)
        (define (get-start-time) start-time)
+       (define (scale factor) (pause (* factor duration-value) start-time))
        (define (self message)
          (cond ((eqv? message 'get-duration) get-duration)
                ((eqv? message 'get-start-time) get-start-time)
+               ((eqv? message 'scale) scale)
                ((eqv? message 'get-type) get-type)))
        self)
      (error "Invalid pause!")))
 
-(define (SequentialMusicElement . elements)
+(define (denestify lst)
+  (cond ((null? lst) '())
+        ((pair? (car lst))
+         (append (denestify (car lst))
+                 (denestify (cdr lst))))
+        (else (cons (car lst) (denestify (cdr lst))))))
+
+
+;Sequential music element
+(define (SequentialMusicElement elements)
   (if(can-create-sequential-or-parallel-MusicElement? elements)
      (let ((elements-list elements))
 
        (define (get-elements) elements-list)
        (define (get-type) 'SequentialMusicElement)
        (define (transpose amount) (SequentialMusicElement (transpose-element elements-list amount)))
+       (define (re-instrument new-instrument) (SequentialMusicElement (re-instrument-element elements-list new-instrument)))
+       (define (scale factor) (SequentialMusicElement (scale-element elements-list factor)))
        (define (get-duration) (calc-duration-seq elements-list))
        (define (self message)
          (cond ((eqv? message 'get-elements) get-elements)
                ((eqv? message 'transpose) transpose)
+               ((eqv? message 're-instrument) re-instrument)
+               ((eqv? message 'scale) scale)
                ((eqv? message 'get-duration) get-duration)
                ((eqv? message 'get-type) get-type)))
        self)
      (error "Invalid SequentialMusicElement")))
 
-(define (ParallelMusicElement . elements)
+;Parallel music element
+(define (ParallelMusicElement elements)
   (if(can-create-sequential-or-parallel-MusicElement? elements)
      (let ((elements-list elements))
 
        (define (get-elements) elements-list)
        (define (get-type) 'ParallelMusicElement)
        (define (transpose amount) (ParallelMusicElement (transpose-element elements-list amount)))
+       (define (scale factor) (ParallelMusicElement (scale-element elements-list factor)))
+       (define (re-instrument new-instrument) (ParallelMusicElement (re-instrument-element elements-list new-instrument)))
        (define (get-duration) (calc-duration-par elements-list))
        (define (self message)
          (cond ((eqv? message 'get-elements) get-elements)
                ((eqv? message 'transpose) transpose)
+               ((eqv? message 're-instrument) re-instrument)
+               ((eqv? message 'scale) scale)
                ((eqv? message 'get-duration) get-duration)
                ((eqv? message 'get-type) get-type)))
        self)
@@ -304,7 +366,8 @@
 
 
 ;The song
-(define TrebleClef1 (SequentialMusicElement (pause (note-duration 1) 0)
+(define TrebleClef1 (SequentialMusicElement (list
+                                           (pause (note-duration 1) 0)
                                            (note 59 (note-duration 1) (convert-from-instrument 'Piano) 0)
                                            (note 57 (note-duration 1) (convert-from-instrument 'Piano) 0) ;1
                                            (note 55 (note-duration 1) (convert-from-instrument 'Piano) 0)
@@ -327,31 +390,33 @@
                                            (note 57 (note-duration 1) (convert-from-instrument 'Piano) 0) ;4
                                            (note 55 (note-duration 1) (convert-from-instrument 'Piano) 0)
                                            (note 59 (note-duration 1) (convert-from-instrument 'Piano) 0)
-                                           (note 55 (note-duration 4) (convert-from-instrument 'Piano) 0)))
+                                           (note 55 (note-duration 4) (convert-from-instrument 'Piano) 0))))
 
-(define BassClef-D(SequentialMusicElement
+(define BassClef-D(SequentialMusicElement (list
   (note 50 (note-duration 3) (convert-from-instrument 'Piano) 0)
   (note 50 (note-duration 3) (convert-from-instrument 'Piano) 0)
-  (note 50 (note-duration 2) (convert-from-instrument 'Piano) 0)))
-(define BassClef-C(SequentialMusicElement
+  (note 50 (note-duration 2) (convert-from-instrument 'Piano) 0))))
+(define BassClef-C(SequentialMusicElement (list
   (note 48 (note-duration 3) (convert-from-instrument 'Piano) 0)
   (note 48 (note-duration 3) (convert-from-instrument 'Piano) 0) 
-  (note 48 (note-duration 2) (convert-from-instrument 'Piano) 0)))
-(define BassClef-B(SequentialMusicElement
+  (note 48 (note-duration 2) (convert-from-instrument 'Piano) 0))))
+(define BassClef-B(SequentialMusicElement (list
   (note 47 (note-duration 3) (convert-from-instrument 'Piano) 0)
   (note 47 (note-duration 3) (convert-from-instrument 'Piano) 0)
-  (note 47 (note-duration 2) (convert-from-instrument 'Piano) 0)))
-(define BassClef-E(SequentialMusicElement
+  (note 47 (note-duration 2) (convert-from-instrument 'Piano) 0))))
+(define BassClef-E(SequentialMusicElement (list
   (note 52 (note-duration 3) (convert-from-instrument 'Piano) 0)
   (note 52 (note-duration 3) (convert-from-instrument 'Piano) 0)
-  (note 52 (note-duration 2) (convert-from-instrument 'Piano) 0)))
+  (note 52 (note-duration 2) (convert-from-instrument 'Piano) 0))))
 
-(define BassClef1 (SequentialMusicElement (pause (note-duration 4) 0) ;1
+(define BassClef1 (SequentialMusicElement (list 
+                                          (pause (note-duration 4) 0) ;1
                                           BassClef-C                  ;2
                                           BassClef-D                  ;3
-                                          BassClef-B))                ;4
+                                          BassClef-B)))               ;4
 
-(define BassClef2 (SequentialMusicElement BassClef1
+(define BassClef2 (SequentialMusicElement (list
+                                          BassClef1
                                           BassClef-E                  ;5
                                           BassClef-C                  ;6
                                           BassClef-D                  ;7
@@ -359,9 +424,10 @@
                                           BassClef-E                  ;9
                                           BassClef-C                  ;10
                                           BassClef-D                  ;11
-                                          BassClef-B))                ;12
+                                          BassClef-B)))               ;12
 
-(define TrebleClef2 (SequentialMusicElement TrebleClef1
+(define TrebleClef2 (SequentialMusicElement (list
+                                            TrebleClef1
                                             (note 59 (note-duration 1) (convert-from-instrument 'Piano) 0)
                                             (note 57 (note-duration 1) (convert-from-instrument 'Piano) 0)
                                             (note 55 (note-duration 1) (convert-from-instrument 'Piano) 0) ;5
@@ -416,13 +482,28 @@
                                             (note 57 (note-duration 1) (convert-from-instrument 'Piano) 0)
                                             (note 55 (note-duration 1) (convert-from-instrument 'Piano) 0)
                                             (note 55 (note-duration 3) (convert-from-instrument 'Piano) 0)
-                                            ))
+                                            )))
 
-(define lovescenario (SequentialMusicElement (ParallelMusicElement TrebleClef1 BassClef1) (ParallelMusicElement TrebleClef2 BassClef2)))
+;For the cannon part of the song, I just transposed a copy of the
+;music piece and added a small pause before it so that it would
+;get the cannon effect
+(define TrebleClefCannon (SequentialMusicElement (list (pause (note-duration 2) 0) (send 'transpose TrebleClef2 1))))
+
+(define lovescenario (SequentialMusicElement (list (ParallelMusicElement (list TrebleClef1 BassClef1)) (ParallelMusicElement (list TrebleClef2 BassClef2 TrebleClefCannon)))))
 ;I shifted the start of the song with ~a second to give the audio player a change to load
 ;as i experienced windows media player to sometimes skip the first note or two as it
 ;was loading the song
+
 (define lovescenario-with-correct-start (set-start-time-seq lovescenario 1000))
 (define song (convert-to-note-abs-time-with-duration-recursive lovescenario-with-correct-start))
 ;If it is not wanted to have the program output a media file, then comment out the following line
 (transform-to-midi-file-and-write-to-file! song "Mlha15TestSong.midi")
+
+
+;For testing
+;-------------------------------
+(define n(note 59 (note-duration 2) (convert-from-instrument 'Piano) 0))
+(define s(SequentialMusicElement (list n n n)))
+(define p(ParallelMusicElement (list n s n)))
+
+;------------------------------
