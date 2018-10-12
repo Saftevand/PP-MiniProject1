@@ -216,7 +216,7 @@
            (transpose-element (car x) amount)))))
 
 (define (convert-to-instrument x) ; Ved ikke om den her skal bruges?
-  ((cond((eq? x 1) "Piano")
+  (cond((eq? x 1) "Piano")
        ((eq? x 2) "Organ")
        ((eq? x 3) "Guitar")
        ((eq? x 4) "Violin")
@@ -224,18 +224,18 @@
        ((eq? x 6) "Trumpet")
        ((eq? x 7) "Helicopter")
        ((eq? x 8) "Telephone")
-       (else (error "Invalid instrument")))))
+       (else (error "Invalid instrument"))))
 
 (define (convert-from-instrument x) ; "" -> '
-  ((cond((eqv? x 'Piano) 1)
-       ((eqv? x "Organ") 2)
-       ((eqv? x "Guitar") 3)
-       ((eqv? x "Violin") 4)
-       ((eqv? x "Flute") 5)
-       ((eqv? x "Trumpet") 6)
-       ((eqv? x "Helicopter") 7)
-       ((eqv? x "Telephone")  8)
-       (else (error "Invalid instrument")))))
+  (cond((eqv? x 'Piano) 1)
+       ((eqv? x 'Organ) 2)
+       ((eqv? x 'Guitar) 3)
+       ((eqv? x 'Violin) 4)
+       ((eqv? x 'Flute) 5)
+       ((eqv? x 'Trumpet) 6)
+       ((eqv? x 'Helicopter) 7)
+       ((eqv? x 'Telephone)  8)
+       (else (error "Invalid instrument"))))
         
 
 
@@ -318,8 +318,8 @@
 
 
 ;For testing
-(define tnote (note 90 1500 (convert-from-instrument "Flute") 0))
-(define tnote2 (note 80 1500 (convert-from-instrument "Violin") 0))
+(define tnote (note 90 1500 (convert-from-instrument 'Flute) 0))
+(define tnote2 (note 80 1500 (convert-from-instrument 'Violin) 0))
 (define tpause (pause 500 0))
 (define tSME (SequentialMusicElement tnote tpause))
 (define tPME (ParallelMusicElement tnote tnote2 tSME))
@@ -329,4 +329,4 @@
 (define li (SequentialMusicElement longtest));(transpose-element longtest 10) (transpose-element longtest 20)))
 (define lt (set-start-time-seq li 1000))
 (define song (convert-to-note-abs-time-with-duration-recursive lt))
-(transform-to-midi-file-and-write-to-file! song "test.midi")
+;(transform-to-midi-file-and-write-to-file! song "test.midi")
