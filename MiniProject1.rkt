@@ -54,16 +54,18 @@
      #f
      (can-create-sequential-or-parallel-MusicElement-helper x)))
 
-(define (can-create-sequential-or-parallel-MusicElement-helper . x)
+(define (can-create-sequential-or-parallel-MusicElement-helper x)
   (if(null? x)
+     #t
      (if(musicElement? (car x))
         (can-create-sequential-or-parallel-MusicElement-helper (cdr x))
-        #f)
-     #t))
+        #f)))
+
+
+
 
 (define (convert-to-note-abs-time-with-duration seq-mus-elem)
   (remove-empty(list-builder seq-mus-elem '())))
-
 
 (define (convert-to-note-abs-time-with-duration-note x)
   (note-abs-time-with-duration (send 'get-start-time x) (send 'get-instrument x) (send 'get-pitch x) velocity (send 'get-duration x)))
@@ -74,7 +76,7 @@
 (define (convert-to-note-abs-time-with-duration-recursive x)
   (if(null? x)
      '()
-     (if (procedure? x)
+     (if (musicElement? x)
          (cond ((eqv? 'Note (send 'get-type x))
               (convert-to-note-abs-time-with-duration-note x))
            ((eqv? 'Pause (send 'get-type  x))
@@ -85,7 +87,7 @@
               (convert-to-note-abs-time-with-duration-recursive (send 'get-elements x)))
            (else error "Error: Unkown type"))
          
-         (if(procedure? (car x))
+         (if(musicElement? (car x))
          (cond ((eqv? 'Note (send 'get-type (car x)))
               (cons (convert-to-note-abs-time-with-duration-note (car x))
                     (convert-to-note-abs-time-with-duration-recursive (cdr x))))
@@ -99,8 +101,7 @@
               (cons (convert-to-note-abs-time-with-duration-recursive (car x))
                     (convert-to-note-abs-time-with-duration-recursive (cdr x))))
            (else error "Error: Unkown type"))
-         (convert-to-note-abs-time-with-duration-recursive (car x))))))
-              
+         (append (convert-to-note-abs-time-with-duration-recursive (car x)) (convert-to-note-abs-time-with-duration-recursive (cdr x)))))))
 
 
 (define (list-builder x)
@@ -215,15 +216,15 @@
              (else error "Error: Unkown type"))
            (transpose-element (car x) amount)))))
 
-(define (convert-to-instrument x) ; Ved ikke om den her skal bruges?
-  (cond((eq? x 1) "Piano")
-       ((eq? x 2) "Organ")
-       ((eq? x 3) "Guitar")
-       ((eq? x 4) "Violin")
-       ((eq? x 5) "Flute")
-       ((eq? x 6) "Trumpet")
-       ((eq? x 7) "Helicopter")
-       ((eq? x 8) "Telephone")
+(define (convert-to-pitch x) ; Ved ikke om den her skal bruges?
+  (cond((eqv? x ) "Piano")
+       ((eqv? x 2) "Organ")
+       ((eqv? x 3) "Guitar")
+       ((eqv? x 4) "Violin")
+       ((eqv? x 5) "Flute")
+       ((eqv? x 6) "Trumpet")
+       ((eqv? x 7) "Helicopter")
+       ((eqv? x 8) "Telephone")
        (else (error "Invalid instrument"))))
 
 (define (convert-from-instrument x) ; "" -> '
@@ -317,16 +318,148 @@
 
 
 
+;The song
+(define (note-duration x)
+  (* x 420))
+;960 midi = 1 sec
+;BPM 180
+
+;(note 5 (note-duration 1) (convert-from-instrument ') 0)
+;(pause (note-duration 5) 0)
+
+
+(define TrebleClef1 (SequentialMusicElement (pause (note-duration 1) 0)
+                                           (note 59 (note-duration 1) (convert-from-instrument 'Piano) 0)
+                                           (note 57 (note-duration 1) (convert-from-instrument 'Piano) 0) ;1
+                                           (note 55 (note-duration 1) (convert-from-instrument 'Piano) 0)
+                                           
+                                           (note 59 (note-duration 1) (convert-from-instrument 'Piano) 0)
+                                           (note 62 (note-duration 4) (convert-from-instrument 'Piano) 0)
+                                           (note 59 (note-duration 1) (convert-from-instrument 'Piano) 0) ;2
+                                           (note 57 (note-duration 1) (convert-from-instrument 'Piano) 0)
+                                           (note 55 (note-duration 1) (convert-from-instrument 'Piano) 0)
+                                           
+                                           (note 59 (note-duration 1) (convert-from-instrument 'Piano) 0)
+                                           (note 57 (note-duration 4) (convert-from-instrument 'Piano) 0)
+                                           (note 59 (note-duration 1) (convert-from-instrument 'Piano) 0) ;3
+                                           (note 57 (note-duration 1) (convert-from-instrument 'Piano) 0)
+                                           (note 55 (note-duration 1) (convert-from-instrument 'Piano) 0)
+                                           
+                                           (note 57 (note-duration 1) (convert-from-instrument 'Piano) 0)
+                                           (note 57 (note-duration 2) (convert-from-instrument 'Piano) 0)
+                                           (note 55 (note-duration 1) (convert-from-instrument 'Piano) 0)
+                                           (note 57 (note-duration 1) (convert-from-instrument 'Piano) 0) ;4
+                                           (note 55 (note-duration 1) (convert-from-instrument 'Piano) 0)
+                                           (note 59 (note-duration 1) (convert-from-instrument 'Piano) 0)
+                                           (note 55 (note-duration 4) (convert-from-instrument 'Piano) 0)))
+
+(define BassClef-B(SequentialMusicElement;d
+  (note 50 (note-duration 3) (convert-from-instrument 'Piano) 0)
+  (note 50 (note-duration 3) (convert-from-instrument 'Piano) 0)
+  (note 50 (note-duration 2) (convert-from-instrument 'Piano) 0)))
+(define BassClef-A(SequentialMusicElement;c
+  (note 48 (note-duration 3) (convert-from-instrument 'Piano) 0)
+  (note 48 (note-duration 3) (convert-from-instrument 'Piano) 0) 
+  (note 48 (note-duration 2) (convert-from-instrument 'Piano) 0)))
+(define BassClef-G(SequentialMusicElement;b
+  (note 47 (note-duration 3) (convert-from-instrument 'Piano) 0)
+  (note 47 (note-duration 3) (convert-from-instrument 'Piano) 0)
+  (note 47 (note-duration 2) (convert-from-instrument 'Piano) 0)))
+(define BassClef-C(SequentialMusicElement;e
+  (note 52 (note-duration 3) (convert-from-instrument 'Piano) 0)
+  (note 52 (note-duration 3) (convert-from-instrument 'Piano) 0)
+  (note 52 (note-duration 2) (convert-from-instrument 'Piano) 0)))
+
+(define BassClef1 (SequentialMusicElement (pause (note-duration 4) 0) ;1
+                                          BassClef-A                  ;2
+                                          BassClef-B                  ;3
+                                          BassClef-G))                ;4
+
+(define TrebleClef2 (SequentialMusicElement TrebleClef1
+                                            (note 59 (note-duration 1) (convert-from-instrument 'Piano) 0)
+                                            (note 57 (note-duration 1) (convert-from-instrument 'Piano) 0)
+                                            (note 55 (note-duration 1) (convert-from-instrument 'Piano) 0) ;5
+                                            (note 57 (note-duration 1) (convert-from-instrument 'Piano) 0)
+                                            (note 55 (note-duration 1) (convert-from-instrument 'Piano) 0)
+                                           
+                                            (note 59 (note-duration 1) (convert-from-instrument 'Piano) 0)
+                                            (note 62 (note-duration 4) (convert-from-instrument 'Piano) 0)
+                                            (note 57 (note-duration 1) (convert-from-instrument 'Piano) 0) ;6
+                                            (note 55 (note-duration 1) (convert-from-instrument 'Piano) 0)
+                                            (note 57 (note-duration 1) (convert-from-instrument 'Piano) 0)
+
+                                            (note 59 (note-duration 1) (convert-from-instrument 'Piano) 0)
+                                            (note 57 (note-duration 4) (convert-from-instrument 'Piano) 0)
+                                            (note 59 (note-duration 1) (convert-from-instrument 'Piano) 0) ;7
+                                            (note 57 (note-duration 1) (convert-from-instrument 'Piano) 0)
+                                            (note 55 (note-duration 1) (convert-from-instrument 'Piano) 0)
+
+                                            (note 57 (note-duration 1) (convert-from-instrument 'Piano) 0)
+                                            (note 57 (note-duration 2) (convert-from-instrument 'Piano) 0)
+                                            (note 55 (note-duration 1) (convert-from-instrument 'Piano) 0)
+                                            (note 57 (note-duration 1) (convert-from-instrument 'Piano) 0) ;8
+                                            (note 55 (note-duration 1) (convert-from-instrument 'Piano) 0)
+                                            (note 57 (note-duration 1) (convert-from-instrument 'Piano) 0)
+                                            (note 55 (note-duration 2) (convert-from-instrument 'Piano) 0)
+
+                                            (note 55 (note-duration 3) (convert-from-instrument 'Piano) 0)
+                                            (note 59 (note-duration 1) (convert-from-instrument 'Piano) 0)
+                                            (note 57 (note-duration 1) (convert-from-instrument 'Piano) 0) ;9
+                                            (note 55 (note-duration 1) (convert-from-instrument 'Piano) 0)
+                                            (note 55 (note-duration 1) (convert-from-instrument 'Piano) 0)
+                                            (note 55 (note-duration 1) (convert-from-instrument 'Piano) 0)
+
+                                            (note 64 (note-duration 2) (convert-from-instrument 'Piano) 0)
+                                            (note 62 (note-duration 1) (convert-from-instrument 'Piano) 0)
+                                            (note 59 (note-duration 3) (convert-from-instrument 'Piano) 0) ; 10
+                                            (note 57 (note-duration 1) (convert-from-instrument 'Piano) 0)
+                                            (note 55 (note-duration 1) (convert-from-instrument 'Piano) 0)
+
+                                            (note 59 (note-duration 1) (convert-from-instrument 'Piano) 0)
+                                            (note 57 (note-duration 1) (convert-from-instrument 'Piano) 0)
+                                            (note 57 (note-duration 2) (convert-from-instrument 'Piano) 0)
+                                            (pause (note-duration 1) 0)
+                                            (note 55 (note-duration 1) (convert-from-instrument 'Piano) 0) ;11
+                                            (note 55 (note-duration 1) (convert-from-instrument 'Piano) 0)
+                                            (note 55 (note-duration 1) (convert-from-instrument 'Piano) 0)
+
+                                            (note 64 (note-duration 2) (convert-from-instrument 'Piano) 0)
+                                            (note 62 (note-duration 1) (convert-from-instrument 'Piano) 0)
+                                            (note 59 (note-duration 1) (convert-from-instrument 'Piano) 0) ;12
+                                            (note 59 (note-duration 2) (convert-from-instrument 'Piano) 0)
+                                            (note 57 (note-duration 1) (convert-from-instrument 'Piano) 0)
+                                            (note 55 (note-duration 1) (convert-from-instrument 'Piano) 0)
+                                            (note 55 (note-duration 3) (convert-from-instrument 'Piano) 0)
+                                            ))
+
+(define BassClef2 (SequentialMusicElement BassClef1
+                                          BassClef-C   ;5
+                                          BassClef-A   ;6
+                                          BassClef-B   ;7
+                                          BassClef-G   ;8
+                                          BassClef-C   ;9
+                                          BassClef-A   ;10
+                                          BassClef-B   ;11
+                                          BassClef-G)) ;12
+
+
+(define lovescenario (SequentialMusicElement (ParallelMusicElement TrebleClef1 BassClef1) (ParallelMusicElement TrebleClef2 BassClef2)))
+
+
+
 ;For testing
-(define tnote (note 90 1500 (convert-from-instrument 'Flute) 0))
-(define tnote2 (note 80 1500 (convert-from-instrument 'Violin) 0))
-(define tpause (pause 500 0))
-(define tSME (SequentialMusicElement tnote tpause))
-(define tPME (ParallelMusicElement tnote tnote2 tSME))
-(define test (SequentialMusicElement tSME tnote tPME tpause))
-(define a (list-builder test))
-(define longtest (SequentialMusicElement tnote tpause tnote tpause tnote tpause tnote tPME))
-(define li (SequentialMusicElement longtest));(transpose-element longtest 10) (transpose-element longtest 20)))
-(define lt (set-start-time-seq li 1000))
+;(define tnote (note 90 15 (convert-from-instrument 'Flute) 0))
+;(define tnote2 (note 60 (note-duration 1) (convert-from-instrument 'Piano) 0))
+;(define tpause (pause 500 0))
+;(define tSME (SequentialMusicElement tnote2 tpause))
+;(define tPME (ParallelMusicElement tnote2 tnote2 tSME))
+
+
+;(define longtest1 (SequentialMusicElement tnote2 tpause tnote2 tpause))
+;(define longtest (SequentialMusicElement longtest1 longtest1))
+
+;(define li (SequentialMusicElement longtest longtest longtest));(transpose-element longtest 10) (transpose-element longtest 20)))
+(define lt (set-start-time-seq lovescenario 1000))
+
 (define song (convert-to-note-abs-time-with-duration-recursive lt))
-;(transform-to-midi-file-and-write-to-file! song "test.midi")
+(transform-to-midi-file-and-write-to-file! song "test.midi")
